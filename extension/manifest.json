@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "SendWise Campus",
+  "version": "0.1.0",
+  "description": "Academic prototype: on-device harmful-message pre-send warnings with metadata-only reporting.",
+  "permissions": ["storage", "scripting"],
+  "host_permissions": [
+    "*://*.instagram.com/*",
+    "*://*.x.com/*",
+    "*://*.twitter.com/*",
+    "*://*.discord.com/*",
+    "*://*.snapchat.com/*",
+    "*://mail.google.com/*",
+    "*://outlook.live.com/*",
+    "*://outlook.office.com/*",
+    "*://teams.microsoft.com/*",
+    "*://chat.google.com/*",
+    "*://*.reddit.com/*",
+    "*://mail.yahoo.com/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.instagram.com/*",
+        "*://*.x.com/*",
+        "*://*.twitter.com/*",
+        "*://*.discord.com/*",
+        "*://*.snapchat.com/*",
+        "*://mail.google.com/*",
+        "*://outlook.live.com/*",
+        "*://outlook.office.com/*",
+        "*://teams.microsoft.com/*",
+        "*://chat.google.com/*",
+        "*://*.reddit.com/*",
+        "*://mail.yahoo.com/*"
+      ],
+      "js": [
+        "vendor/detection-library/analyzer.js",
+        "vendor/detection-library/emoji-analyzer.js",
+        "vendor/detection-library/sarcasm-detector.js",
+        "vendor/detection-library/context-detector.js",
+        "vendor/detection-library/warning-escalator.js",
+        "vendor/detection-library/privacy-detector.js",
+        "vendor/detection-library/self-harm-detector.js",
+        "vendor/detection-library/risky-behavior-detector.js",
+        "vendor/detection-library/meeting-detector.js",
+        "vendor/detection-library/index.js",
+        "lib/classifier.js",
+        "content-script.js"
+      ],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["overlay.css", "vendor/models/*"], "matches": ["<all_urls>"] }
+  ]
+}

@@ -1,0 +1,6 @@
+/* SendWise Campus - overlay styles.
+   Note: the warning modal is rendered inside a closed shadow root and
+   styles itself. This file exists for MV3 declaration and future
+   non-shadow UI (e.g., toast/badge). */
+
+.sendwise-hidden { display: none !important; }

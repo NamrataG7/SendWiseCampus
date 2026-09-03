@@ -1,0 +1,11 @@
+{
+  "name": "sendwise-campus-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SendWise Campus - MV3 browser extension (academic prototype).",
+  "scripts": {
+    "prebuild": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true});require('fs').mkdirSync('dist',{recursive:true})\"",
+    "sync-vendor": "node -e \"const fs=require('fs'),p=require('path');fs.rmSync('vendor',{recursive:true,force:true});fs.mkdirSync('vendor/detection-library',{recursive:true});fs.mkdirSync('vendor/models',{recursive:true});for(const f of fs.readdirSync('../shared/detection-library'))fs.copyFileSync(p.join('../shared/detection-library',f),p.join('vendor/detection-library',f));for(const f of fs.readdirSync('../shared/models'))fs.copyFileSync(p.join('../shared/models',f),p.join('vendor/models',f));console.log('vendor synced');\"",
+    "build": "npm run sync-vendor && npm run prebuild && cd .. && zip -r extension/dist/sendwise-campus-extension.zip extension -x 'extension/dist/*' 'extension/node_modules/*' 'extension/package*.json'"
+  }
+}

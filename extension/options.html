@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>SendWise Campus - Options</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px; margin: 24px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 18px; }
+    label { display:block; margin-top: 14px; font-size: 13px; color:#333; }
+    input { width: 100%; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    button { margin-top: 16px; padding: 8px 14px; background:#1a73e8; color:#fff; border:0; border-radius:6px; cursor:pointer; }
+    .ok { color: #0a7d28; font-size: 13px; margin-left: 10px; }
+    p.note { font-size: 12px; color:#666; }
+  </style>
+</head>
+<body>
+  <h1>SendWise Campus - Settings</h1>
+  <p class="note">Academic prototype. Only metadata (category, severity, host) is sent to the dashboard. Message text never leaves your browser.</p>
+  <label>Dashboard URL
+    <input id="dashboardUrl" type="url" placeholder="https://dashboard.example.edu" />
+  </label>
+  <label>Campus code
+    <input id="campusCode" type="text" placeholder="e.g. UNI-ABC" />
+  </label>
+  <div>
+    <button id="save">Save</button>
+    <span id="status" class="ok"></span>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
