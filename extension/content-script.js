@@ -40,7 +40,7 @@
     overlayHost = null;
   }
 
-  function showWarning(result, onEdit, onContinue) {
+  function showWarning(result, onEdit, onContinue, onCancel) {
     closeOverlay();
     overlayHost = document.createElement('div');
     overlayHost.style.cssText = 'position:fixed;inset:0;z-index:2147483647;';
@@ -52,14 +52,15 @@
     shadow.innerHTML = `
       <style>
         .sw-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-        .sw-modal { background:#fff; max-width:420px; width:90%; border-radius:12px; padding:20px 22px; box-shadow:0 10px 40px rgba(0,0,0,.3); }
+        .sw-modal { background:#fff; max-width:440px; width:90%; border-radius:12px; padding:20px 22px; box-shadow:0 10px 40px rgba(0,0,0,.3); }
         .sw-title { font-size:18px; font-weight:600; margin:0 0 8px; color:#b00020; }
         .sw-msg { font-size:14px; color:#222; margin:0 0 14px; line-height:1.4; }
         .sw-meta { font-size:12px; color:#555; margin:0 0 16px; }
-        .sw-row { display:flex; gap:10px; justify-content:flex-end; }
+        .sw-row { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
         .sw-btn { border:0; border-radius:8px; padding:8px 14px; font-size:14px; cursor:pointer; }
         .sw-edit { background:#1a73e8; color:#fff; }
         .sw-continue { background:#eee; color:#222; }
+        .sw-cancel { background:transparent; color:#555; border:1px solid #ccc; }
       </style>
       <div class="sw-backdrop" part="backdrop">
         <div class="sw-modal" role="dialog" aria-modal="true">
@@ -67,6 +68,7 @@
           <p class="sw-msg">Your message may contain content that could be harmful or offensive. Would you like to reconsider?</p>
           <p class="sw-meta">Category: ${String(category)} &middot; Severity: ${String(severity)}</p>
           <div class="sw-row">
+            <button class="sw-btn sw-cancel" id="sw-cancel">Cancel</button>
             <button class="sw-btn sw-continue" id="sw-continue">Send Anyway</button>
             <button class="sw-btn sw-edit" id="sw-edit">Edit Message</button>
           </div>
@@ -76,16 +78,17 @@
     document.documentElement.appendChild(overlayHost);
     shadow.getElementById('sw-edit').addEventListener('click', () => { closeOverlay(); onEdit && onEdit(); });
     shadow.getElementById('sw-continue').addEventListener('click', () => { closeOverlay(); onContinue && onContinue(); });
+    shadow.getElementById('sw-cancel').addEventListener('click', () => { closeOverlay(); onCancel && onCancel(); });
   }
 
-  function reportViolation(result) {
+  function reportViolation(result, action) {
     // METADATA ONLY. Never include text.
     const payload = {
       category: (result && (result.category || result.topCategory)) || 'unknown',
       severity: (result && result.severity) || 'medium',
       score: (result && (result.toxicityScore || result.score)) || null,
       host: location.hostname,
-      userChoice: 'send_anyway'
+      action: action || 'unknown' // edit | send_anyway | cancel
     };
     try { chrome.runtime.sendMessage({ type: 'violation', payload }); } catch (e) {}
   }
@@ -109,9 +112,9 @@
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
 
     showWarning(result,
-      () => { editable.focus && editable.focus(); },
+      () => { reportViolation(result, 'edit'); editable.focus && editable.focus(); },
       () => {
-        reportViolation(result);
+        reportViolation(result, 'send_anyway');
         // Re-dispatch a synthetic submission event on the original target
         if (e.type === 'keydown') {
           // Let user re-press Enter; simplest approach for academic scope
@@ -120,6 +123,14 @@
           target.__sendwiseBypass = true;
           target.click();
         }
+      },
+      () => {
+        reportViolation(result, 'cancel');
+        // Clear the draft — Cancel means "do not send, discard the draft"
+        try {
+          if (editable.isContentEditable) editable.innerText = '';
+          else if ('value' in editable) editable.value = '';
+        } catch (_) {}
       }
     );
   }

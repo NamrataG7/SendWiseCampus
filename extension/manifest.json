@@ -3,7 +3,8 @@
   "name": "SendWise Campus",
   "version": "0.1.0",
   "description": "Academic prototype: on-device harmful-message pre-send warnings with metadata-only reporting.",
-  "permissions": ["storage", "scripting"],
+  "permissions": ["activeTab", "storage", "scripting"],
+  "storage": { "managed_schema": "managed-schema.json" },
   "host_permissions": [
     "*://*.instagram.com/*",
     "*://*.x.com/*",

@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "properties": {
+    "dashboardUrl": {
+      "title": "Dashboard URL",
+      "description": "Base URL of the wellbeing-team dashboard (MDM-forced).",
+      "type": "string"
+    },
+    "campusCode": {
+      "title": "Campus code",
+      "description": "College identifier bound via Chrome Enterprise policy.",
+      "type": "string"
+    },
+    "collegePolicyUrl": {
+      "title": "College acceptable-use policy URL",
+      "type": "string"
+    },
+    "optOutAllowed": {
+      "title": "Allow student opt-out of telemetry",
+      "type": "boolean"
+    }
+  }
+}
