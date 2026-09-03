@@ -1,0 +1,18 @@
+{
+  "name": "sendwise-campus",
+  "private": true,
+  "version": "0.1.0",
+  "description": "On-campus, on-college-owned-devices cyberbullying prevention — privacy-preserving, wellbeing-first. Academic project.",
+  "workspaces": [
+    "shared/*",
+    "extension",
+    "campus-dashboard"
+  ],
+  "scripts": {
+    "build:extension": "cd extension && npm run build",
+    "dev:dashboard": "cd campus-dashboard && npm run dev",
+    "build:dashboard": "cd campus-dashboard && npm run build"
+  },
+  "author": "Namrata Gaikwad <namratamgaikwad@gmail.com>",
+  "license": "MIT"
+}
