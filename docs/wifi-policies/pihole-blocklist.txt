@@ -1,0 +1,40 @@
+# SendWiseCampus — Pi-hole blocklist (ILLUSTRATIVE / ACADEMIC ONLY)
+#
+# This list is a TEMPLATE for a campus DNS sinkhole. It is deliberately
+# small and illustrative. Do NOT ship as-is: over-blocking harms students.
+# Review with the student ombudsman and wellbeing team before deployment.
+# Categories are commented; each entry should be justified in policy.
+#
+# Format: one domain per line, Pi-hole-compatible (also works as
+# unbound / dnsmasq blocklist). Wildcard subdomains handled by Pi-hole.
+#
+# Deploy: Pi-hole Admin → Group Management → Adlists → paste raw URL of
+# this file (host it on the campus intranet), then "Update Gravity".
+
+# --- Category: known cyberbullying / anonymous harassment boards ------
+# Rationale: repeatedly cited in Indian campus cyberbullying incident reports.
+kiwifarms.net
+lolcow.farm
+
+# --- Category: anonymous callout / gossip aggregators -----------------
+# Rationale: enable targeted harassment of named students.
+example-campus-gossip.invalid
+anon-college-confess.invalid
+
+# --- Category: doxxing / personal-info lookup services ----------------
+# Rationale: used to escalate online abuse to offline harassment.
+example-doxxer.invalid
+whitepages-lookalike.invalid
+
+# --- Category: known self-harm-promoting communities ------------------
+# Rationale: SendWise wellbeing scope; route students to counselling
+# instead. NB: do NOT block general mental-health support sites.
+example-prosh-forum.invalid
+
+# --- Category: revenge-porn / non-consensual imagery hosts ------------
+# Rationale: illegal under IT Act §67/67A in India; block at network edge.
+example-revenge-host.invalid
+
+# --- End of list ------------------------------------------------------
+# Additions must be logged in the governance audit trail and reviewed
+# quarterly by the student ombudsman (see docs/OMBUDSMAN_CHARTER.md).

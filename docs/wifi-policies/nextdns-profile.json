@@ -1,0 +1,57 @@
+{
+  "_comment": "SendWiseCampus NextDNS profile template. Academic only. Apply via NextDNS API PATCH /profiles/{id}. Replace <PROFILE_ID> and denylist entries before use.",
+  "name": "SendWiseCampus-CampusWiFi",
+  "security": {
+    "threatIntelligenceFeeds": true,
+    "aiDrivenThreatDetection": true,
+    "googleSafeBrowsing": true,
+    "cryptojacking": true,
+    "dnsRebinding": true,
+    "idnHomographs": true,
+    "typosquatting": true,
+    "dgaProtection": true,
+    "newlyRegisteredDomains": true,
+    "parkedDomains": false,
+    "csamProtection": true
+  },
+  "parentalControl": {
+    "safeSearch": true,
+    "youtubeRestrictedMode": true,
+    "blockBypassMethods": true,
+    "categories": [
+      { "id": "porn", "active": true },
+      { "id": "gambling", "active": true },
+      { "id": "dating", "active": false },
+      { "id": "piracy", "active": true },
+      { "id": "hate", "active": true },
+      { "id": "violence", "active": true }
+    ],
+    "services": [
+      { "id": "4chan", "active": true },
+      { "id": "kiwifarms", "active": true }
+    ]
+  },
+  "denylist": [
+    { "id": "kiwifarms.net", "active": true },
+    { "id": "lolcow.farm", "active": true },
+    { "id": "example-campus-gossip.invalid", "active": true },
+    { "id": "example-doxxer.invalid", "active": true },
+    { "id": "example-revenge-host.invalid", "active": true }
+  ],
+  "allowlist": [
+    { "id": "counselling.example.edu", "active": true },
+    { "id": "wellbeing.example.edu", "active": true }
+  ],
+  "settings": {
+    "logs": {
+      "enabled": true,
+      "retention": "1 month",
+      "location": "eu",
+      "_comment": "Aggregate campus-level logs. Per-device logging disabled by policy."
+    },
+    "blockPage": {
+      "enabled": true,
+      "customMessage": "This site is blocked on campus WiFi under the SendWiseCampus wellbeing policy. If you believe this is wrong, contact the student ombudsman."
+    }
+  }
+}
