@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         {/* Header */}
         <div className="mb-8">
           <a
-            href="/"
+            href="/dashboard"
             className="text-blue-600 hover:text-blue-700 text-sm mb-4 inline-block font-medium"
           >
             ← Back to Dashboard

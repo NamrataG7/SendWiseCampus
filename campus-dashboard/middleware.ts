@@ -57,7 +57,9 @@ export async function middleware(req: NextRequest) {
   }
 
   const isProtectedPage =
-    pathname === '/' ||
+    pathname === '/dashboard' ||
+    pathname.startsWith('/dashboard/') ||
+    pathname.startsWith('/students') ||
     pathname.startsWith('/insights') ||
     pathname.startsWith('/pair');
 

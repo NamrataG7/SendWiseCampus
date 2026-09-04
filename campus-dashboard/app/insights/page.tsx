@@ -50,7 +50,7 @@ export default async function InsightsPage() {
           </div>
         </div>
         <Link
-          href="/"
+          href="/dashboard"
           className="text-[14px] font-medium text-[#6C3FE1] hover:underline"
         >
           ← Back to Dashboard
