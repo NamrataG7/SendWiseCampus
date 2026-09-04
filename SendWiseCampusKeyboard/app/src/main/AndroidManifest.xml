@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Required permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <application
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:theme="@android:style/Theme.Material.Light"
+        android:usesCleartextTraffic="false"
+        tools:targetApi="31">
+
+        <!--
+            Campus fork: parent-visible screens removed per PLAN.md line 21
+            (Discard: Parent-visible metadata screens).
+
+            Removed activities (previously in SafeKeyboardApp):
+              - .ui.MainActivity           (parental-dashboard launcher UX)
+              - .ui.SettingsActivity       (parent-tunable settings surface)
+              - .ui.PairingActivity        (parent<->child OTP pairing)
+
+            Enrollment is now driven by MDM managed-configuration
+            (see EnrollmentActivity below).
+        -->
+
+        <!-- Campus enrollment activity - reads campus_code from MDM managed config -->
+        <activity
+            android:name=".ui.EnrollmentActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- IME Service - core keyboard service, unchanged from upstream -->
+        <service
+            android:name=".ime.SafeKeyboardIME"
+            android:label="@string/keyboard_name"
+            android:permission="android.permission.BIND_INPUT_METHOD"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method" />
+        </service>
+
+        <!-- Overlay service for on-device warning popup -->
+        <service
+            android:name=".ui.OverlayService"
+            android:exported="false" />
+
+    </application>
+
+</manifest>

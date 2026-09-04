@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SendWise Campus Keyboard</string>
+    <string name="keyboard_name">SendWise Campus Keyboard</string>
+    <string name="enrollment_title">Campus Enrollment</string>
+    <string name="enrollment_code_label">Campus code</string>
+    <string name="enrollment_code_missing">Not set — awaiting campus IT MDM push</string>
+    <string name="enrollment_note">Set by campus IT via MDM managed configuration.</string>
+</resources>
