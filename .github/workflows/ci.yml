@@ -100,6 +100,22 @@ jobs:
       - name: Install psql client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
+      - name: Bootstrap Supabase auth stub
+        # Migrations use Supabase-managed helpers (auth.uid(), auth.role()).
+        # Vanilla Postgres 16 has no `auth` schema — stub it for the lint run.
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d campus -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE SCHEMA IF NOT EXISTS auth;
+          CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
+            LANGUAGE sql STABLE AS $$ SELECT NULL::uuid $$;
+          CREATE OR REPLACE FUNCTION auth.role() RETURNS text
+            LANGUAGE sql STABLE AS $$ SELECT 'anon'::text $$;
+          CREATE OR REPLACE FUNCTION auth.jwt() RETURNS jsonb
+            LANGUAGE sql STABLE AS $$ SELECT '{}'::jsonb $$;
+          SQL
+
       - name: Apply migrations in order
         env:
           PGPASSWORD: postgres
