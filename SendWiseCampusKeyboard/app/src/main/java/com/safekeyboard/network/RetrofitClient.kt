@@ -84,5 +84,6 @@ object RetrofitClient {
         .build()
 
     val apiService: ApiService = retrofit.create(ApiService::class.java)
-    val pairingApiService: PairingApiService = retrofit.create(PairingApiService::class.java)
+    // PairingApiService removed in Campus fork (parent<->child OTP flow deleted).
+    // Enrollment is delivered via MDM RestrictionsManager instead — see EnrollmentActivity.
 }
