@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  dashboard-typecheck:
+    name: Campus Dashboard TypeScript check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: campus-dashboard/package-lock.json
+
+      - name: Install dashboard dependencies
+        working-directory: campus-dashboard
+        run: npm install --no-audit --no-fund
+
+      - name: TypeScript --noEmit
+        working-directory: campus-dashboard
+        run: npx tsc --noEmit
+
+  extension-pack:
+    name: Build MV3 extension zip (Chrome + Edge)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sync vendored detectors + models
+        working-directory: extension
+        run: |
+          if [ -f package.json ] && grep -q '"sync-vendor"' package.json; then
+            npm run sync-vendor
+          else
+            mkdir -p vendor/detection-library vendor/models
+            cp -R ../shared/detection-library/. vendor/detection-library/
+            cp -R ../shared/models/. vendor/models/
+          fi
+
+      - name: Validate manifest.json
+        working-directory: extension
+        run: node -e "const m=require('./manifest.json'); if(m.manifest_version!==3){process.exit(1)} console.log('manifest ok:', m.name, m.version)"
+
+      - name: Pack extension zip
+        working-directory: extension
+        run: |
+          VERSION=$(node -p "require('./manifest.json').version")
+          zip -r "../sendwise-campus-extension-${VERSION}.zip" . \
+            -x "node_modules/*" -x "*.zip" -x "package-lock.json"
+
+      - name: Upload extension zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: sendwise-campus-extension
+          path: sendwise-campus-extension-*.zip
+          retention-days: 90
+
+      - name: Create GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sendwise-campus-extension-*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  supabase-migrations:
+    name: Supabase migration lint (psql dry-run)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: campus
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply migrations in order
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            echo "=== applying $f ==="
+            psql -h localhost -U postgres -d campus -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Apply seed (best-effort)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          if [ -f supabase/seed.sql ]; then
+            psql -h localhost -U postgres -d campus -f supabase/seed.sql || true
+          fi
