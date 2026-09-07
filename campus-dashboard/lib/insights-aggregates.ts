@@ -8,6 +8,7 @@
  */
 
 import type { InsightsPayload } from './insights-server-types';
+import { DEFAULT_K, kFloorFromEnv } from './privacy/k-anonymity';
 
 export interface TrendPoint {
   date: string;
@@ -72,6 +73,43 @@ function formatDayLabel(iso: string): string {
     timeZone: 'UTC',
   });
 }
+
+/**
+ * Apply a k-anonymity floor to the raw distribution counts inside an
+ * `InsightsPayload` *before* converting to percentages. Buckets whose
+ * absolute count falls strictly between 0 and k are zeroed out so a
+ * wellbeing team viewer cannot infer that "exactly one student in the
+ * cohort exhibits self_harm risk" from a non-zero micro-slice.
+ *
+ * See Sweeney L. (2002) k-Anonymity: A Model for Protecting Privacy.
+ * The floor defaults to `DEFAULT_K` (10) and is overridable via
+ * `NEXT_PUBLIC_K_ANONYMITY_FLOOR`.
+ */
+export function applyKAnonymityToPayload(
+  payload: InsightsPayload,
+  k: number = kFloorFromEnv(),
+): InsightsPayload {
+  const suppress = (v: number) => (v > 0 && v < k ? 0 : v);
+
+  const categoryDistribution = Object.fromEntries(
+    Object.entries(payload.categoryDistribution).map(([kk, v]) => [kk, suppress(v)]),
+  ) as InsightsPayload['categoryDistribution'];
+  const severityDistribution = Object.fromEntries(
+    Object.entries(payload.severityDistribution).map(([kk, v]) => [kk, suppress(v)]),
+  ) as InsightsPayload['severityDistribution'];
+
+  return {
+    ...payload,
+    categoryDistribution,
+    severityDistribution,
+    editedVsSent: {
+      edited: suppress(payload.editedVsSent.edited),
+      sent_anyway: suppress(payload.editedVsSent.sent_anyway),
+    },
+  };
+}
+
+export { DEFAULT_K };
 
 /**
  * Convert the server-side InsightsPayload to the chart-ready shape used by

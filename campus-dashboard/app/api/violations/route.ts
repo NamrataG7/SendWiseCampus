@@ -41,6 +41,21 @@ export async function POST(req: NextRequest) {
   }
   const v = parsed.data;
 
+  // Local differential privacy provenance (Erlingsson, Pihur, Korolova
+  // 2014, "RAPPOR"): the extension may perturb the category via
+  // randomised response before egress. We accept and log the flag but
+  // do not persist it in a dedicated column — there is no jsonb column
+  // in the current Redis-list persistence, and schema changes are
+  // deliberately out of scope for this lane. The DP fields are dropped
+  // from the stored record so downstream aggregation is unaffected.
+  const { dp_applied, dp_epsilon, ...persisted } = v;
+  if (dp_applied) {
+    console.log(
+      `[violations] dp_applied=true dp_epsilon=${dp_epsilon ?? 'unspecified'} ` +
+        `user=${v.user_id_hash.slice(0, 8)}...`,
+    );
+  }
+
   // Rate limit: 100 req/hour per user_id_hash
   const rlKey = `ratelimit:violations:${v.user_id_hash}`;
   const count = await redis.incr(rlKey);
@@ -56,8 +71,8 @@ export async function POST(req: NextRequest) {
   }
 
   const listKey = `violations:${v.user_id_hash}`;
-  await redis.lpush(listKey, JSON.stringify(v));
+  await redis.lpush(listKey, JSON.stringify(persisted));
   await redis.ltrim(listKey, 0, LIST_CAP - 1);
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, dp_acknowledged: !!dp_applied });
 }

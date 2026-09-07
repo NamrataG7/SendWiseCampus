@@ -18,6 +18,11 @@
     "optOutAllowed": {
       "title": "Allow student opt-out of telemetry",
       "type": "boolean"
+    },
+    "dpEpsilon": {
+      "title": "Local differential-privacy epsilon",
+      "description": "Randomised-response epsilon applied to the category label before egress (Erlingsson et al., RAPPOR 2014). Higher = less noise, more accurate aggregates. 0 disables the mechanism. Default 1.0.",
+      "type": "number"
     }
   }
 }

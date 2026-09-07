@@ -52,6 +52,15 @@
   <label>College acceptable-use policy URL
     <input id="collegePolicyUrl" type="url" placeholder="https://college.example.edu/acceptable-use" />
   </label>
+  <label>Differential-privacy epsilon (&epsilon;)
+    <input id="dpEpsilon" type="number" step="0.1" min="0" max="10" placeholder="1.0" />
+  </label>
+  <p class="muted">
+    Local differential privacy (Erlingsson et al., RAPPOR 2014) perturbs the
+    reported <em>category</em> label via randomised response before it leaves
+    your browser. Higher &epsilon; = less noise, more accurate aggregate
+    dashboards. 0 = disabled (not recommended). Default 1.0.
+  </p>
   <p class="muted"><a id="policyLink" href="#" target="_blank" rel="noreferrer">Read the campus policy</a></p>
 
   <h2>About</h2>

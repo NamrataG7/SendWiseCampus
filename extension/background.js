@@ -4,6 +4,17 @@
 // stable per-profile anonymous user_id_hash, per-session session_id, live counter.
 
 const FORBIDDEN_FIELDS = ['text', 'content', 'message', 'body', 'raw', 'transcript'];
+// Canonical category label set — must match campus-dashboard/lib/schema.ts
+// (IncidentCategoryEnum). Used by the local-DP randomised-response mechanism
+// below (Erlingsson, Pihur, Korolova 2014, "RAPPOR: Randomized Aggregatable
+// Privacy-Preserving Ordinal Response", ACM CCS).
+const CATEGORY_LABELS = Object.freeze([
+  'harassment',
+  'threats',
+  'hate_speech',
+  'sexual_content',
+  'self_harm'
+]);
 const DEFAULTS = {
   dashboardUrl: '',
   campusCode: 'UNSET',
@@ -11,7 +22,10 @@ const DEFAULTS = {
   enabled: true,
   eventsSent: 0,
   userIdHash: '',
-  optOutAllowed: true
+  optOutAllowed: true,
+  // Local differential-privacy epsilon. 0 (or undefined) disables the
+  // randomised-response perturbation entirely — backward compatible.
+  dpEpsilon: 1.0
 };
 
 // Per-service-worker-lifetime session id. Rotates when the worker restarts.
@@ -64,6 +78,41 @@ async function incrementCounter() {
   await chrome.storage.sync.set({ eventsSent: eventsSent + 1 });
 }
 
+// ---------------------------------------------------------------------------
+// Local differential privacy — randomised response for categorical labels.
+//
+// Erlingsson, Pihur, Korolova (2014) "RAPPOR: Randomized Aggregatable
+// Privacy-Preserving Ordinal Response" (ACM CCS 2014) generalises Warner's
+// (1965) randomised-response survey technique to give each client an
+// epsilon-local-DP guarantee: an adversary who observes the reported
+// category cannot distinguish, with confidence exceeding e^epsilon,
+// whether the true category was c or c'.
+//
+// We use the two-outcome flip probability p = 1 / (1 + e^epsilon):
+// with probability (1 - p) keep the true category; otherwise emit a
+// uniformly random *other* category from CATEGORY_LABELS.
+//
+// A single crypto.getRandomValues() sample gives us the uniform draw.
+// Epsilon <= 0 (or undefined / non-finite) disables the mechanism —
+// this preserves backward compatibility with pre-DP deployments.
+// ---------------------------------------------------------------------------
+function uniform01Crypto() {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return (buf[0] + 1) / (0xffffffff + 2);
+}
+
+function randomisedResponseCategory(category, epsilon) {
+  if (!(epsilon > 0) || !Number.isFinite(epsilon)) return category;
+  if (!CATEGORY_LABELS.includes(category)) return category;
+  const flipProb = 1 / (1 + Math.exp(epsilon));
+  if (uniform01Crypto() >= flipProb) return category;
+  const others = CATEGORY_LABELS.filter(c => c !== category);
+  if (others.length === 0) return category;
+  const idx = Math.floor(uniform01Crypto() * others.length);
+  return others[Math.min(idx, others.length - 1)];
+}
+
 async function postViolation(payload) {
   const cfg = await getConfig();
 
@@ -79,10 +128,19 @@ async function postViolation(payload) {
 
   const userIdHash = await ensureUserHash(cfg);
 
+  // Apply local DP (RAPPOR-style randomised response) to the category
+  // label before egress, if configured. epsilon <= 0 disables it.
+  const rawCategory = payload.category || 'unknown';
+  const epsilon = Number(cfg.dpEpsilon);
+  const dpEnabled = Number.isFinite(epsilon) && epsilon > 0;
+  const emittedCategory = dpEnabled
+    ? randomisedResponseCategory(rawCategory, epsilon)
+    : rawCategory;
+
   const body = {
     // Metadata schema per docs/EXTENSION_SPEC.md §Reuse:
     // category, severity, action, timestamp, user_id_hash, session_id
-    category: payload.category || 'unknown',
+    category: emittedCategory,
     severity: payload.severity || 'medium',
     action: payload.action || 'unknown', // edit | send_anyway | cancel
     score: payload.score ?? null,
@@ -93,6 +151,11 @@ async function postViolation(payload) {
     campus_code: cfg.campusCode,
     ext_version: chrome.runtime.getManifest().version
   };
+
+  if (dpEnabled) {
+    body.dp_applied = true;
+    body.dp_epsilon = epsilon;
+  }
 
   if (!isMetadataOnly(body)) {
     console.error('[SendWise] Rejected non-metadata payload (contains text-like field).');

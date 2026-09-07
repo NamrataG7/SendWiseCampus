@@ -24,11 +24,18 @@ import type {
   InsightsTrendPoint,
 } from '@/lib/insights-server-types';
 import type { Incident, DashboardStats } from '@/lib/types';
+import {
+  applyKAnonymityToTiles,
+  kFloorFromEnv,
+  DEFAULT_K,
+  type KAnonymizedStats,
+} from '@/lib/privacy/k-anonymity';
 
 export type {
   InsightsPayload,
   InsightsTrendPoint as TrendPoint,
 } from '@/lib/insights-server-types';
+export type { KAnonymizedStats } from '@/lib/privacy/k-anonymity';
 
 interface StoredViolation {
   user_id_hash: string;
@@ -267,3 +274,25 @@ export function computeDashboardStats(incidents: Incident[]): DashboardStats {
     lastIncidentTime: lastTs,
   };
 }
+
+/**
+ * Same as `computeDashboardStats` but additionally applies a k-anonymity
+ * floor (Sweeney 2002) to each headline tile: any cell with 0 < count < k
+ * is suppressed to 0 and flagged `suppressed: true`, so the UI can render
+ * an "insufficient data (k<N)" placeholder instead of a re-identifiable
+ * micro-count.
+ *
+ * The floor defaults to `DEFAULT_K` (10) and is overridable via the
+ * `NEXT_PUBLIC_K_ANONYMITY_FLOOR` environment variable, itself intended
+ * to be set by MDM / campus deployment config.
+ *
+ * This is a rendering guard only. Persistence is untouched.
+ */
+export function computeDashboardStatsKAnonymous(
+  incidents: Incident[],
+  k: number = kFloorFromEnv(),
+): KAnonymizedStats {
+  return applyKAnonymityToTiles(computeDashboardStats(incidents), k);
+}
+
+export { DEFAULT_K, kFloorFromEnv };

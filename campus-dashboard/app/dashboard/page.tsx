@@ -9,10 +9,15 @@ import DrillDownRequestForm from '@/components/DrillDownRequestForm';
 import { getChildrenForParent } from '@/lib/parent-store';
 import {
   computeIncidentList,
-  computeDashboardStats,
+  computeDashboardStatsKAnonymous,
   computeInsightsAggregate,
+  kFloorFromEnv,
 } from '@/lib/insights-server';
-import { payloadToChartData, emptyInsights } from '@/lib/insights-aggregates';
+import {
+  payloadToChartData,
+  emptyInsights,
+  applyKAnonymityToPayload,
+} from '@/lib/insights-aggregates';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,9 +91,14 @@ export default async function DashboardPage() {
   }
 
   // Aggregate cohort data — no per-student rows exposed here.
+  // k-anonymity floor (Sweeney 2002) is applied to every headline tile
+  // and every distribution bucket so no cell reveals a single-student
+  // sub-cohort. Floor is MDM-tunable via NEXT_PUBLIC_K_ANONYMITY_FLOOR.
+  const kFloor = kFloorFromEnv();
   const incidents = await computeIncidentList(students);
-  const stats = computeDashboardStats(incidents);
-  const insightsPayload = await computeInsightsAggregate(students);
+  const stats = computeDashboardStatsKAnonymous(incidents, kFloor);
+  const insightsPayloadRaw = await computeInsightsAggregate(students);
+  const insightsPayload = applyKAnonymityToPayload(insightsPayloadRaw, kFloor);
   const charts = payloadToChartData(insightsPayload);
 
   const cohortLabel =
@@ -125,7 +135,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Cohort stats — no student identifiers */}
-        <StatsOverview stats={stats} />
+        <StatsOverview stats={stats} kFloor={kFloor} />
 
         {/* Recharts insights — category distribution, severity donut, trend */}
         <div className="mb-8">

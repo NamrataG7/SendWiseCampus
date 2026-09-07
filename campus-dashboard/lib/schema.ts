@@ -39,6 +39,12 @@ export const ViolationIngestSchema = z
     action: ActionEnum,
     session_id: z.string().min(1),
     campus_code: z.string().min(1).max(64).optional(),
+    // Local differential privacy signals emitted by the extension
+    // (Erlingsson, Pihur, Korolova 2014, "RAPPOR"). Optional and
+    // ignored by the aggregate pipeline — retained only so the
+    // ingest route can log whether a client applied LDP noise.
+    dp_applied: z.boolean().optional(),
+    dp_epsilon: z.number().positive().optional(),
   })
   .strict();
 

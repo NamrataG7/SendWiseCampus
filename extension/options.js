@@ -9,7 +9,8 @@ const DEFAULTS = {
   enabled: true,
   eventsSent: 0,
   userIdHash: '',
-  optOutAllowed: true
+  optOutAllowed: true,
+  dpEpsilon: 1.0
 };
 
 async function getManaged() {
@@ -35,6 +36,12 @@ async function load() {
   document.getElementById('dashboardUrl').value = merged.dashboardUrl || '';
   document.getElementById('campusCode').value = merged.campusCode || '';
   document.getElementById('collegePolicyUrl').value = merged.collegePolicyUrl || '';
+  const epsField = document.getElementById('dpEpsilon');
+  if (epsField) {
+    epsField.value = merged.dpEpsilon != null ? String(merged.dpEpsilon) : '1.0';
+    // MDM-managed epsilon locks the field so campus policy is enforced.
+    if (managed && managed.dpEpsilon != null) epsField.disabled = true;
+  }
 
   const enabledBox = document.getElementById('enabled');
   enabledBox.checked = merged.enabled !== false;
@@ -90,7 +97,18 @@ async function save() {
   const dashboardUrl = document.getElementById('dashboardUrl').value.trim();
   const campusCode = document.getElementById('campusCode').value.trim() || 'UNSET';
   const collegePolicyUrl = document.getElementById('collegePolicyUrl').value.trim();
-  await chrome.storage.sync.set({ dashboardUrl, campusCode, collegePolicyUrl, enabled });
+  const epsRaw = document.getElementById('dpEpsilon')?.value;
+  const parsedEps = epsRaw === '' || epsRaw == null ? 1.0 : Number(epsRaw);
+  const dpEpsilon = Number.isFinite(parsedEps) && parsedEps >= 0 && parsedEps <= 10
+    ? parsedEps
+    : 1.0;
+  await chrome.storage.sync.set({
+    dashboardUrl,
+    campusCode,
+    collegePolicyUrl,
+    enabled,
+    dpEpsilon
+  });
   const s = document.getElementById('status');
   s.textContent = 'Saved.';
   setTimeout(() => (s.textContent = ''), 1500);
