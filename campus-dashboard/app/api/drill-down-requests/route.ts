@@ -16,6 +16,13 @@ import { createClient } from '@/utils/supabase/server';
  *
  * GET /api/drill-down-requests
  * Lists the current user's submitted requests (any status).
+ *
+ * PATCH /api/drill-down-requests/:id/sign
+ * Cryptographic dual-control: an approver submits an Ed25519 signature
+ * over the canonical payload hash. See ./[id]/sign/route.ts and
+ * lib/dual-control/verifier.ts. Approval to status='approved' now
+ * requires BOTH a wellbeing_lead and a student_ombudsman signature
+ * verifiable against the current approver_keys roster.
  */
 
 const HEX64 = /^[a-f0-9]{64}$/i;
