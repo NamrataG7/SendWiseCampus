@@ -1,0 +1,73 @@
+# SendWise Campus — reviewer reproducibility pack.
+#
+# Reviewers can bring up a clean Postgres, apply every migration in
+# supabase/migrations/ in lexical order, and see the schema materialise
+# end-to-end with a single command:
+#
+#     docker compose --profile review up
+#
+# Env vars a reviewer may override (defaults shown):
+#   POSTGRES_USER=sendwise
+#   POSTGRES_PASSWORD=sendwise
+#   POSTGRES_DB=sendwise
+#   POSTGRES_PORT=54329        # host-side port, avoids clashing with a local pg
+#
+# Scope note: the Next.js dashboard (campus-dashboard/) is intentionally NOT
+# included here — it requires Supabase auth wiring that is out of scope for
+# a minimal reviewer bring-up. See docs/REPRODUCIBILITY.md for the manual
+# `npm run dev` step. TODO: add a dashboard service in a future revision.
+
+services:
+  postgres:
+    image: postgres:16
+    profiles: ["review"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sendwise}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sendwise}
+      POSTGRES_DB: ${POSTGRES_DB:-sendwise}
+    ports:
+      - "${POSTGRES_PORT:-54329}:5432"
+    volumes:
+      - sendwise_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sendwise} -d ${POSTGRES_DB:-sendwise}"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  dashboard-migrate:
+    # One-shot migration applier. Mounts the repo's supabase/migrations dir
+    # read-only and psql's every *.sql file in lexical order. Exits 0 on
+    # success so `docker compose up` will terminate cleanly for reviewers.
+    image: postgres:16
+    profiles: ["review"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-sendwise}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-sendwise}
+      PGDATABASE: ${POSTGRES_DB:-sendwise}
+    volumes:
+      - ./supabase/migrations:/migrations:ro
+      - ./supabase/seed.sql:/seed.sql:ro
+    entrypoint:
+      - bash
+      - -c
+      - |
+        set -euo pipefail
+        echo "==> Applying migrations from /migrations in lexical order"
+        for f in $$(ls /migrations/*.sql | sort); do
+          echo "----> $$f"
+          psql -v ON_ERROR_STOP=1 -f "$$f"
+        done
+        if [ -f /seed.sql ]; then
+          echo "==> Applying seed.sql"
+          psql -v ON_ERROR_STOP=1 -f /seed.sql
+        fi
+        echo "==> Migration chain applied successfully."
+
+volumes:
+  sendwise_pgdata:

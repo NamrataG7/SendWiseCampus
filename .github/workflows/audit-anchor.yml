@@ -1,0 +1,60 @@
+name: audit-anchor
+
+# Daily publisher for the audit_log Merkle-root anchor.
+# See docs/AUDIT_ANCHOR.md for the threat model.
+
+on:
+  schedule:
+    # 03:17 UTC daily — off-peak, avoids the top-of-hour cron stampede.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  anchor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install anchor deps
+        working-directory: scripts/audit-anchor
+        run: npm install --no-audit --no-fund
+
+      - name: Generate anchor
+        working-directory: scripts/audit-anchor
+        env:
+          DATABASE_URL: ${{ secrets.AUDIT_ANCHOR_DATABASE_URL }}
+          CAMPUS_CODE: ${{ vars.CAMPUS_CODE }}
+        run: node anchor.mjs
+
+      - name: Upload anchor artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-anchor-${{ github.run_id }}
+          path: scripts/audit-anchor/out/
+          retention-days: 90
+
+      - name: Publish MERKLE_ROOT.txt to public Gist
+        # TODO: enable by adding the ANCHOR_GIST_TOKEN + ANCHOR_GIST_ID secrets.
+        # This step is intentionally guarded so the job never fails when the
+        # secret is absent — an unpublished anchor is still uploaded above.
+        if: ${{ env.ANCHOR_GIST_TOKEN != '' && env.ANCHOR_GIST_ID != '' }}
+        env:
+          ANCHOR_GIST_TOKEN: ${{ secrets.ANCHOR_GIST_TOKEN }}
+          ANCHOR_GIST_ID: ${{ secrets.ANCHOR_GIST_ID }}
+        run: |
+          set -euo pipefail
+          ROOT="$(cat scripts/audit-anchor/out/MERKLE_ROOT.txt)"
+          STAMP="$(date -u +%Y-%m-%d)"
+          BODY=$(jq -nc --arg r "$ROOT" --arg s "$STAMP" '{
+            files: { ("MERKLE_ROOT_" + $s + ".txt"): { content: $r } }
+          }')
+          curl -fsS -X PATCH \
+            -H "Authorization: Bearer ${ANCHOR_GIST_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/gists/${ANCHOR_GIST_ID}" \
+            -d "$BODY"

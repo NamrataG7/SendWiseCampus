@@ -1,0 +1,16 @@
+{
+  "name": "sendwise-transparency-report",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Monthly public transparency report generator for dual-control drill-down usage.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.11.3"
+  }
+}
