@@ -227,6 +227,55 @@ Why:
 | Deployment scope constraint (college-owned devices only) | N/A | N/A | Mixed | **Y** |
 | Independence from parent/authority | N/A | Parent-centric | Authority-centric | Ombudsman-mediated |
 
+### 7.1 Implementation status (shipped in the reference repo)
+
+Everything below is present in the repository at the commit hashes noted. Any
+future paper draft should pin the exact commit hash of submission time.
+
+- **Browser extension (MV3).** Content script, shadow-DOM warning overlay,
+  background egress guard, options page with configurable DP epsilon.
+  Commits: `dd97efd` (action-enum alignment), `e2dfaf0`, `2a9dfc3`.
+- **Android IME fork.** `SendWiseCampusKeyboard/` — parent-visible screens
+  stripped, MDM-fed enrollment stub, APK built in CI.
+  Commits: `10109af`, `cf6514d`, `534a835`.
+- **Dashboard fork.** Aggregate-first UI, public landing page at `/`,
+  authenticated dashboard at `/dashboard`.
+  Commits: `c003a93`, `8b80e16`.
+- **Supabase migrations 1–7.** Base schema, hash-chained audit log, RLS,
+  auto-expiry, scoped-admin dual-control, signed co-approval, ombudsman
+  key rotation.
+  Commits: `058a24c`, `d4f5410`.
+- **Cryptographic dual-signature.** Ed25519 signer/verifier, roster
+  endpoints, server-side re-verification on read.
+  Commit: `d4f5410`.
+- **k-anonymity floor + local differential privacy.** k=10 floor on
+  aggregate tiles; RAPPOR-style randomised response on category at egress.
+  Commit: `44f6c54`.
+- **Audit anchor + transparency report + docker-compose.** Daily Merkle
+  root publisher, monthly public HTML report, review-profile compose stack.
+  Commit: `57d1be6`.
+- **LINDDUN threat model + bias probe + perf benchmark harness.** Full
+  seven-category LINDDUN treatment, SAE↔AAVE probe, extension perf harness.
+  Commit: `aa19519`.
+
+### 7.2 Reproducibility
+
+The reference implementation is designed to be re-run by a reviewer without
+access to a live campus deployment:
+
+- `docker-compose.yml` — `review` profile stands up Postgres, applies all
+  seven migrations, and loads seed data.
+- `scripts/audit-anchor/anchor.mjs` — regenerates the daily Merkle-root
+  anchor from the audit-log table; a standalone verifier is included.
+- `scripts/transparency-report/generate.mjs` — regenerates the monthly
+  public transparency report.
+- `scripts/benchmarks/extension-perf.mjs` — reproduces the extension
+  performance table (cold-start, P50/P95/P99 latency, RSS).
+- `scripts/eval/bias-probe.mjs` — runs the illustrative SAE↔AAVE bias
+  probe over the shipped analyzer.
+- `docs/REPRODUCIBILITY.md` — end-to-end recipe pinning tool versions and
+  commit hashes.
+
 ## 8. Threat Model
 
 Four adversaries × mitigations. STRIDE-lite summary; **full LINDDUN treatment
@@ -406,24 +455,32 @@ Additional risks worth stating up front:
 
 ## 12. Immediate Next Actions (2-week checklist)
 
-- [ ] Verify all `[VERIFY]` citations against Scopus / DOI / Google Scholar. Fix any wrong years/venues.
-- [ ] Draft §1 (Introduction) and §4 (Governance Primitives) — the two sections that define the contribution.
-- [ ] Draw Figure 1 (architecture) and Figure 3 (dual-control sequence) — recommend draw.io / Excalidraw, export to PDF.
-- [ ] Complete Related Work §2 by expanding the per-paper 1-line summaries into 3-4 sentence paragraphs.
-- [ ] Fill the Comparison Table (§7 here → paper §6) into full text.
-- [ ] Send outline + §1/§4 draft to a supervising professor for pre-submission read. A named supervisor as co-author dramatically raises acceptance odds.
-- [ ] Pick venue: recommend SN Computer Science first submission (2-4 month decision). Backup: AI and Ethics.
-- [ ] Prepare ORCID + institutional affiliation for submission.
+Shipped:
+
+- [x] LINDDUN threat model (`docs/LINDDUN.md`).
+- [x] Ed25519 dual-signature protocol shipped (migration 6, `d4f5410`).
+- [x] k-anonymity floor on aggregate UI (`44f6c54`).
+- [x] Local differential privacy on egress (`44f6c54`).
+- [x] Externally verifiable audit anchor (`scripts/audit-anchor/`, `57d1be6`).
+- [x] Bias probe harness (`scripts/eval/bias-probe.mjs`, `aa19519`).
+- [x] Performance benchmark harness (`scripts/benchmarks/extension-perf.mjs`, `aa19519`).
+
+Remaining:
+
 - [ ] Run `node scripts/benchmarks/extension-perf.mjs` on the reference
-      machine and populate the table in `docs/BENCHMARKS.md` §4.
-- [ ] Draft the new IMRaD subsections **§4.6** (Ed25519 dual-signature
-      protocol), **§4.7** (LDP + k-anonymity), and **§4.8** (verifiable
-      audit anchor) — each cross-referencing the corresponding companion doc.
-- [ ] Draw the two new figures — **Figure 6** dual-signature ceremony
-      sequence + K-of-N ombudsman roster, and **Figure 7** LINDDUN DFD
-      (source in `docs/LINDDUN.md` §1) — in Excalidraw or draw.io, export PDF.
+      machine and populate the results table in `docs/BENCHMARKS.md` §4.
 - [ ] Apply for the Sap et al. 2019 dialect-annotated dataset per
-      `docs/BIAS_EVALUATION.md` §5 to unblock the real bias evaluation.
+      `docs/BIAS_EVALUATION.md` §5 and run the real bias evaluation.
+- [ ] Verify all `[VERIFY]` citations in the References section against
+      Scopus / DOI / Google Scholar. Fix any wrong years/venues.
+- [ ] Draft §4.6 (Ed25519 dual-signature protocol), §4.7 (LDP +
+      k-anonymity), and §4.8 (verifiable audit anchor) body prose, each
+      cross-referencing the corresponding companion doc.
+- [ ] Draw Figure 1 (architecture) and Figure 6 (dual-signature ceremony +
+      K-of-N ombudsman roster) in draw.io / Excalidraw, export to PDF.
+- [ ] Draft §1 (Introduction) and §4 (Governance Primitives) full text — the
+      two sections that define the contribution.
+- [ ] Send draft to a supervising professor for a pre-submission read.
 
 ## References
 
