@@ -9,7 +9,7 @@
 
 ## 2. Recommended Framing (single sentence)
 
-> "SendWiseCampus: a dual-control, ombudsman-mediated de-anonymisation architecture for on-device, metadata-only campus wellbeing telemetry, separating student support from academic discipline by design."
+> "SendWiseCampus: a cryptographically enforced dual-control, ombudsman-mediated de-anonymisation architecture for on-device, differentially-private, k-anonymous campus wellbeing telemetry, with externally verifiable audit anchoring — separating student support from academic discipline by design AND by cryptographic construction."
 
 Why this framing:
 - Puts **governance** (the genuinely novel contribution) first, not ML (which is reused).
@@ -147,19 +147,49 @@ Rows: the 10 papers above. Columns: the 8 features that define SendWiseCampus.
 
 ## 6. Where Novelty Lies
 
-Explicit novelty claims, cross-referenced to the gap they close:
+Explicit novelty claims after the crypto / privacy / audit upgrades (see
+`KEY_MANAGEMENT.md`, `PRIVACY_MECHANISMS.md`, `AUDIT_ANCHOR.md`,
+`TRANSPARENCY_REPORT.md`):
 
-1. **First cross-modal (Android IME + Chromium MV3 browser extension) pre-send warning surface for campus deployment.** Closes the surface gap in [P6] (keyboard only) and [P5] (post-hoc only). Cross-modal matters because chromebooks are 100% browser but campus tablets use IME.
+1. **First cross-modal on-device pre-send warning surface for campus deployment.**
+   Chromium MV3 browser extension + Android IME sharing a single detection
+   library. Closes the surface gap in [P6] (keyboard only) and [P5] (post-hoc).
 
-2. **Dual-control de-anonymisation as a first-class governance primitive.** Not proposed for wellbeing telemetry in any prior surveyed paper. Analogous to two-person integrity in nuclear/HSM/forensic domains — we lift the pattern into student-support tooling.
+2. **Cryptographic dual-control de-anonymisation.** Ed25519 signatures from
+   the wellbeing lead **and** an independent student ombudsman, verified
+   server-side and appended to a hash-chained audit log. Extends the
+   two-person-integrity pattern from HSM / nuclear / NIST SP 800-57 key-custody
+   domains (Anderson, *Security Engineering*) into student-support tooling.
+   Not proposed for wellbeing telemetry in any prior surveyed paper.
 
-3. **Independent student ombudsman with veto power over de-anonymisation.** Advocated by [P9] and [P10] as principle; not previously operationalised as a required signer with veto in a monitoring system.
+3. **Independent student ombudsman with veto power, plus K-of-N succession
+   ceremony for role continuity.** Advocated as principle by [P9] and [P10];
+   not previously operationalised as a required signer with veto AND a
+   documented key-rotation ceremony that survives graduation.
 
-4. **Metadata-only telemetry with defence-in-depth field-rejection.** Extends the on-device pattern from [P7] and [P8] into a full end-to-end schema (category, severity, action, user_id_hash, session_id, campus_code) with server-side content-field rejection — closing the "text always leaks somewhere" gap that CDT [P9] documents in commercial products.
+4. **Three-layer privacy composition on egress and display.** Metadata-only
+   schema with defence-in-depth field-rejection **and** client-side local
+   differential privacy (RAPPOR-style randomised response; Erlingsson, Pihur
+   & Korolova 2014) **and** server-side k-anonymity floor (Sweeney 2002) on
+   the aggregate UI. All three layers are DP-safe under Dwork et al. 2006
+   post-processing.
 
-5. **Explicit wellbeing/discipline separation by policy AND by design.** [P9] shows commercial products conflate the two. We propose a hash-chained audit log + retention cron + governance charter that render telemetry inadmissible in disciplinary proceedings.
+5. **Externally verifiable audit anchor.** Daily Merkle root publication over
+   the hash-chained audit log to a public channel; third parties can detect
+   retroactive tampering without dashboard access. Draws on the Certificate
+   Transparency literature (Laurie 2013, RFC 6962) and tamper-evident logging
+   (Crosby & Wallach 2009). Complemented by a public monthly transparency
+   report (see `TRANSPARENCY_REPORT.md`).
 
-*(Reused, not novel: the Random Forest classifier — reused from parent project SendWise. This is honestly disclosed in the paper; the ML is a substrate, not a contribution.)*
+6. **Wellbeing/discipline separation enforced by policy AND technical
+   inadmissibility mechanisms.** Retention cron, ombudsman veto over
+   drilldown, and public transparency reporting render telemetry inadmissible
+   in disciplinary proceedings by construction, not by promise.
+
+*(Reused, not novel: the Random Forest classifier — reused from parent
+project SendWise. Honestly disclosed; the ML is a substrate, not a
+contribution. Bias in the substrate is separately treated in
+`BIAS_EVALUATION.md`.)*
 
 ## 7. Baseline Selection
 
@@ -185,8 +215,13 @@ Why:
 | Metadata-only telemetry | N (self-report only) | Y | N (content sent) | Y |
 | Aggregate-first dashboard | N | N (per-child) | N | **Y** |
 | Dual-control de-anon | N | N | N | **Y** |
+| **Cryptographic dual-signature approvals (Ed25519)** | N | N | N | **Y** |
 | Independent ombudsman | N | N | N | **Y** |
 | Hash-chained audit | N | N | N (opaque) | **Y** |
+| **Local differential privacy on egress** | N | N | N | **Y** |
+| **k-anonymity floor on aggregate UI** | N | N | N | **Y** |
+| **Externally verifiable audit anchor (daily Merkle root)** | N | N | N | **Y** |
+| **Public transparency report** | N | N | N | **Y** |
 | Auto-retention purge | N | N | N (indefinite) | **Y** |
 | Wellbeing ≠ discipline (by policy + design) | N/A | N/A | N (discipline use documented) | **Y** |
 | Deployment scope constraint (college-owned devices only) | N/A | N/A | Mixed | **Y** |
@@ -194,7 +229,10 @@ Why:
 
 ## 8. Threat Model
 
-Four adversaries × mitigations. STRIDE-lite.
+Four adversaries × mitigations. STRIDE-lite summary; **full LINDDUN treatment
+lives in `docs/LINDDUN.md`** — reviewers wanting the seven-category analysis,
+DFD with trust boundaries, and residual-risk table should read that document.
+The paper §5 will cite LINDDUN.md and reproduce the summary table below.
 
 | Adversary | Wants | Threat | SendWiseCampus mitigation |
 |---|---|---|---|
@@ -237,6 +275,19 @@ Since we have no pilot, describe a credible evaluation plan:
 - Governance efficacy: 0 unilateral de-anon attempts succeed (audit-log inspection).
 - Student acceptance: median trust score ≥ 4/7 post-pilot.
 
+**9.6 Benchmarks already collectible without users**
+- Cold-start, warm P50 / P95 / P99 latency, RSS memory footprint of the
+  content-script analyzer — reproduced by `node scripts/benchmarks/extension-perf.mjs`.
+  Reporting protocol and caveats in `docs/BENCHMARKS.md`.
+
+**9.7 Bias probe harness (illustrative, not a benchmark)**
+- `scripts/eval/bias-probe.mjs` runs the shipped analyzer over an embedded
+  SAE ↔ AAVE pair set and reports per-dialect predicted-toxic rate and
+  equalised-odds gap.
+- Explicitly **illustrative**: real bias evaluation is deferred to the
+  Sap et al. 2019 (ACL) dataset once access is arranged. Rationale, mitigation
+  ladder, and reporting protocol in `docs/BIAS_EVALUATION.md`.
+
 ## 10. IMRaD Outline
 
 ```
@@ -264,6 +315,12 @@ Since we have no pilot, describe a credible evaluation plan:
    4.3 Hash-chained audit log
    4.4 Retention cron & semester purge
    4.5 Discipline-separation policy
+   4.6 Cryptographic dual-signature protocol (Ed25519, K-of-N roster,
+       rotation ceremony) — new subsection, see KEY_MANAGEMENT.md
+   4.7 Client-side local differential privacy and server-side k-anonymity —
+       new subsection, see PRIVACY_MECHANISMS.md
+   4.8 Verifiable audit anchor (daily Merkle root + monthly transparency
+       report) — new subsection, see AUDIT_ANCHOR.md, TRANSPARENCY_REPORT.md
 
 5. Threat Model (~1 pp)
    Table from §8; discussion of residual risks
@@ -284,12 +341,14 @@ Since we have no pilot, describe a credible evaluation plan:
 References (~1 pp, 15-25 entries)
 ```
 
-**Figures (5 max):**
+**Figures (7 max):**
 1. Architecture diagram (student browser → extension → dashboard → Supabase, with metadata-only egress boundary marked).
 2. Dashboard aggregate-first UI mockup.
 3. Dual-control approval sequence diagram (drill-down request → wellbeing lead sign → ombudsman sign → approved read).
 4. Hash-chained audit-log data structure.
 5. Governance comparison bar chart (SendWiseCampus vs baselines across the 8 features from §5).
+6. **Ed25519 dual-signature ceremony sequence + K-of-N ombudsman roster** (new; supports §4.6).
+7. **LINDDUN DFD with trust boundaries** (new; supports §5 threat model and cross-references `LINDDUN.md`).
 
 ## 11. Honest Risks & Reviewer Objections
 
@@ -302,13 +361,43 @@ Top 5 objections + pre-emptive responses:
    *Response:* Yes — honestly disclosed. The paper's contribution is the governance layer and cross-modal deployment surface, not the classifier. Position ML as substrate.
 
 3. **"Small-N campuses allow re-identification even from aggregate data."**
-   *Response:* Acknowledge in §11 threat-not-mitigated. Add a k-anonymity constraint (min bucket 10) as a policy control. Cite Sweeney's re-identification work.
+   *Response:* Partly addressed by the shipped **k-anonymity floor (min bucket
+   = 10)** on the aggregate UI (see `PRIVACY_MECHANISMS.md`), backed by
+   client-side local differential privacy (RAPPOR-style randomised response)
+   on egress. Residual small-N risk in the presence of out-of-band roster
+   knowledge is disclosed in `LINDDUN.md` §3 (R1) as a Medium residual risk.
+   Cite Sweeney 2002 (k-anonymity), Erlingsson et al. 2014 (RAPPOR),
+   Dwork et al. 2006 (DP composition).
 
 4. **"How is 'ombudsman' guaranteed to be independent in practice?"**
-   *Response:* The paper does not claim to solve organisational politics — it provides a technical veto mechanism. Independence is a policy prerequisite; the system enforces the technical consequence.
+   *Response:* The paper does not claim to solve organisational politics — it
+   provides a **cryptographic veto mechanism** (Ed25519 signature required on
+   every drilldown approval; see `KEY_MANAGEMENT.md`). Independence is a
+   policy prerequisite; the system enforces the technical consequence.
+   K-of-N rotation ceremony handles ombudsman succession without collapse
+   of the veto.
 
 5. **"Why not existing solutions (Bark, Gaggle)? They already work."**
-   *Response:* Cite [P9] Barrett & Rice on documented misuse. Existing solutions violate wellbeing/discipline separation and lack independent oversight. Frame SendWiseCampus as governance-first alternative, not an incremental improvement.
+   *Response:* Cite [P9] Barrett & Rice on documented misuse. Existing
+   solutions violate wellbeing/discipline separation and lack independent
+   oversight, cryptographic dual-control, differential privacy, k-anonymity
+   floors, and externally verifiable audit anchors. Frame SendWiseCampus as
+   governance-first alternative, not an incremental improvement.
+
+6. **"How do we know you haven't retroactively tampered with the audit log?"**
+   *Response:* Daily **Merkle-root anchor** published to a public channel
+   (`AUDIT_ANCHOR.md`); external auditors verify without dashboard access.
+   Draws on Certificate Transparency (Laurie 2013, RFC 6962) and tamper-evident
+   logging (Crosby & Wallach 2009). The monthly public transparency report
+   (`TRANSPARENCY_REPORT.md`) makes anchor absence itself detectable.
+
+7. **"Your ML has documented dialect bias."**
+   *Response:* Acknowledged and disclosed. See `BIAS_EVALUATION.md`. The
+   substrate is honestly disclosed as inherited from SendWise, an illustrative
+   probe harness is shipped in `scripts/eval/bias-probe.mjs`, and a Sap et al.
+   2019 dataset evaluation is committed as follow-up work with a concrete
+   mitigation ladder (per-dialect thresholds, reweighting, adversarial
+   debiasing, human-in-the-loop review).
 
 Additional risks worth stating up front:
 - The Chrome Enterprise policy enforcement can be bypassed on a jailbroken device — same as any MDM tool.
@@ -325,6 +414,16 @@ Additional risks worth stating up front:
 - [ ] Send outline + §1/§4 draft to a supervising professor for pre-submission read. A named supervisor as co-author dramatically raises acceptance odds.
 - [ ] Pick venue: recommend SN Computer Science first submission (2-4 month decision). Backup: AI and Ethics.
 - [ ] Prepare ORCID + institutional affiliation for submission.
+- [ ] Run `node scripts/benchmarks/extension-perf.mjs` on the reference
+      machine and populate the table in `docs/BENCHMARKS.md` §4.
+- [ ] Draft the new IMRaD subsections **§4.6** (Ed25519 dual-signature
+      protocol), **§4.7** (LDP + k-anonymity), and **§4.8** (verifiable
+      audit anchor) — each cross-referencing the corresponding companion doc.
+- [ ] Draw the two new figures — **Figure 6** dual-signature ceremony
+      sequence + K-of-N ombudsman roster, and **Figure 7** LINDDUN DFD
+      (source in `docs/LINDDUN.md` §1) — in Excalidraw or draw.io, export PDF.
+- [ ] Apply for the Sap et al. 2019 dialect-annotated dataset per
+      `docs/BIAS_EVALUATION.md` §5 to unblock the real bias evaluation.
 
 ## References
 
@@ -405,6 +504,88 @@ Additional risks worth stating up front:
   title   = {Children's data and privacy online: growing up in a digital age},
   institution = {LSE Media Policy Project},
   year    = {2018}
+}
+
+@article{sweeney2002kanonymity,
+  author  = {Sweeney, Latanya},
+  title   = {k-anonymity: A Model for Protecting Privacy},
+  journal = {International Journal on Uncertainty, Fuzziness and Knowledge-Based Systems},
+  volume  = {10}, number = {5}, pages = {557--570},
+  year    = {2002}
+}
+
+@inproceedings{erlingsson2014rappor,
+  author  = {Erlingsson, {\'U}lfar and Pihur, Vasyl and Korolova, Aleksandra},
+  title   = {{RAPPOR}: Randomized Aggregatable Privacy-Preserving Ordinal Response},
+  booktitle = {ACM CCS},
+  year    = {2014}
+}
+
+@inproceedings{dwork2006dp,
+  author  = {Dwork, Cynthia and McSherry, Frank and Nissim, Kobbi and Smith, Adam},
+  title   = {Calibrating Noise to Sensitivity in Private Data Analysis},
+  booktitle = {TCC},
+  year    = {2006}
+}
+
+@article{laurie2013ct,
+  author  = {Laurie, Ben},
+  title   = {Certificate Transparency},
+  journal = {ACM Queue},
+  year    = {2013},
+  note    = {See also RFC 6962}
+}
+
+@inproceedings{crosby2009tamperevident,
+  author  = {Crosby, Scott A. and Wallach, Dan S.},
+  title   = {Efficient Data Structures for Tamper-Evident Logging},
+  booktitle = {USENIX Security},
+  year    = {2009}
+}
+
+@article{deng2011linddun,
+  author  = {Deng, Mina and Wuyts, Kim and Scandariato, Riccardo and Preneel, Bart and Joosen, Wouter},
+  title   = {A privacy threat analysis framework: supporting the elicitation and fulfillment of privacy requirements},
+  journal = {Requirements Engineering},
+  volume  = {16}, number = {1}, pages = {3--32},
+  year    = {2011}
+}
+
+@inproceedings{wuyts2020linddungo,
+  author  = {Wuyts, Kim and Sion, Laurens and Joosen, Wouter},
+  title   = {{LINDDUN GO}: A Lightweight Approach to Privacy Threat Modelling},
+  booktitle = {IEEE European Symposium on Security and Privacy Workshops (EuroS\&PW)},
+  year    = {2020}
+}
+
+@inproceedings{sap2019racialbias,
+  author  = {Sap, Maarten and Card, Dallas and Gabriel, Saadia and Choi, Yejin and Smith, Noah A.},
+  title   = {The Risk of Racial Bias in Hate Speech Detection},
+  booktitle = {ACL},
+  year    = {2019}
+}
+
+@inproceedings{davidson2019racialbias,
+  author  = {Davidson, Thomas and Bhattacharya, Debasmita and Weber, Ingmar},
+  title   = {Racial Bias in Hate Speech and Abusive Language Detection Datasets},
+  booktitle = {ACL Workshop on Abusive Language Online (ALW3)},
+  year    = {2019}
+}
+
+@techreport{nist80057,
+  author  = {{NIST}},
+  title   = {SP 800-57 Part 1 Rev. 5 — Recommendation for Key Management},
+  institution = {National Institute of Standards and Technology},
+  year    = {2020}
+}
+
+@book{anderson2020security,
+  author    = {Anderson, Ross},
+  title     = {Security Engineering: A Guide to Building Dependable Distributed Systems},
+  edition   = {3rd},
+  publisher = {Wiley},
+  year      = {2020},
+  note      = {Chapter on two-person integrity / dual control}
 }
 ```
 
