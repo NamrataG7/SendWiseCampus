@@ -142,7 +142,7 @@ async function postViolation(payload) {
     // category, severity, action, timestamp, user_id_hash, session_id
     category: emittedCategory,
     severity: payload.severity || 'medium',
-    action: payload.action || 'unknown', // edit | send_anyway | cancel
+    action: payload.action || 'blocked', // edited | sent_anyway | cancelled | blocked
     score: payload.score ?? null,
     host: payload.host || null,
     timestamp: new Date().toISOString(),

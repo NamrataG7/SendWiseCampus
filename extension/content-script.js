@@ -88,7 +88,7 @@
       severity: (result && result.severity) || 'medium',
       score: (result && (result.toxicityScore || result.score)) || null,
       host: location.hostname,
-      action: action || 'unknown' // edit | send_anyway | cancel
+      action: action || 'blocked' // edited | sent_anyway | cancelled | blocked
     };
     try { chrome.runtime.sendMessage({ type: 'violation', payload }); } catch (e) {}
   }
@@ -112,9 +112,9 @@
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
 
     showWarning(result,
-      () => { reportViolation(result, 'edit'); editable.focus && editable.focus(); },
+      () => { reportViolation(result, 'edited'); editable.focus && editable.focus(); },
       () => {
-        reportViolation(result, 'send_anyway');
+        reportViolation(result, 'sent_anyway');
         // Re-dispatch a synthetic submission event on the original target
         if (e.type === 'keydown') {
           // Let user re-press Enter; simplest approach for academic scope
@@ -125,7 +125,7 @@
         }
       },
       () => {
-        reportViolation(result, 'cancel');
+        reportViolation(result, 'cancelled');
         // Clear the draft — Cancel means "do not send, discard the draft"
         try {
           if (editable.isContentEditable) editable.innerText = '';
